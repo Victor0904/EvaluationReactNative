@@ -1,21 +1,20 @@
+import { useTheme } from '@/contexts/ThemeContext';
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { useThemeColor } from '@/hooks/useThemeColor';
-
 export type ThemedTextProps = TextProps & {
-  lightColor?: string;
-  darkColor?: string;
   type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  color?: keyof typeof import('@/constants/ThemeColors').LightColors;
 };
 
 export function ThemedText({
   style,
-  lightColor,
-  darkColor,
+  color: colorKey,
   type = 'default',
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const { colors } = useTheme();
+
+  const color = colorKey ? colors[colorKey] : colors.text;
 
   return (
     <Text
@@ -36,25 +35,32 @@ export function ThemedText({
 const styles = StyleSheet.create({
   default: {
     fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 26, // Ligne plus espacée pour la lisibilité
+    letterSpacing: 0.2, // Espacement des lettres plus naturel
   },
   defaultSemiBold: {
     fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
+    lineHeight: 26,
+    fontWeight: '500', // Moins gras pour un look plus naturel
+    letterSpacing: 0.3,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
+    fontSize: 30, // Légèrement plus petit
+    fontWeight: '700', // Moins gras que 'bold'
+    lineHeight: 36, // Plus d'espace vertical
+    letterSpacing: -0.5, // Serrage naturel des titres
   },
   subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 19, // Légèrement plus petit
+    fontWeight: '600', // Poids intermédiaire
+    letterSpacing: 0.1,
+    lineHeight: 24,
   },
   link: {
-    lineHeight: 30,
+    lineHeight: 28,
     fontSize: 16,
     color: '#0a7ea4',
+    letterSpacing: 0.2,
+    textDecorationLine: 'underline',
   },
 });

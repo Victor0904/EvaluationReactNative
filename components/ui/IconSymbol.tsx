@@ -1,11 +1,11 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
+import { SymbolWeight } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+type IconMapping = Record<string, ComponentProps<typeof MaterialIcons>['name']>;
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
@@ -18,6 +18,34 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'exclamationmark.triangle.fill': 'warning',
+  'person.2.fill': 'group',
+  'plus.circle.fill': 'add-circle',
+  'trash.fill': 'delete',
+  'location.fill': 'location-on',
+  'location': 'location-on',
+  'trafficlight': 'traffic',
+  'road.lanes': 'road',
+  'tram.fill': 'tram',
+  'person.fill': 'person',
+  'wrench.and.screwdriver.fill': 'build',
+  'shield.fill': 'security',
+  'building.2.fill': 'business',
+  'flame.fill': 'local-fire-department',
+  'phone.fill': 'phone',
+  'phone': 'phone',
+  'checkmark.circle.fill': 'check-circle',
+  'chevron.left': 'chevron-left',
+  'bolt.fill': 'flash-on',
+  'antenna.radiowaves.left.and.right': 'wifi',
+  'flame.circle.fill': 'local-fire-department',
+  'drop.fill': 'water-drop',
+  'building.fill': 'business',
+  'sun.max.fill': 'wb-sunny',
+  'moon.fill': 'nightlight-round',
+  'gear': 'settings',
+  'chevron.down': 'keyboard-arrow-down',
+  'checkmark': 'check',
 } as IconMapping;
 
 /**

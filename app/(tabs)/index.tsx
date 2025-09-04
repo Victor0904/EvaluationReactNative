@@ -1,75 +1,176 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { AdaptiveFloatingButton } from '@/components/AdaptiveFloatingButton';
+import { ObstacleCard } from '@/components/ObstacleCard';
+import { StatusBar } from '@/components/StatusBar';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useRefresh } from '@/contexts/RefreshContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View
+} from 'react-native';
+import { StorageService } from '../../services/storage';
+import { Obstacle } from '../../types';
 
-export default function HomeScreen() {
+export default function ObstaclesScreen() {
+  const [obstacles, setObstacles] = useState<Obstacle[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
+  const { colors } = useTheme();
+  const { refreshTrigger } = useRefresh();
+
+  const loadObstacles = async () => {
+    try {
+      const loadedObstacles = await StorageService.getObstacles();
+      setObstacles(loadedObstacles);
+    } catch (error) {
+      console.error('Erreur lors du chargement des obstacles:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadObstacles();
+  }, []);
+
+  // Recharger la liste quand le trigger de refresh change
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      loadObstacles();
+    }
+  }, [refreshTrigger]);
+
+  // Recharger la liste quand on revient sur cet écran
+  useFocusEffect(
+    useCallback(() => {
+      loadObstacles();
+    }, [])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadObstacles();
+    setRefreshing(false);
+  };
+
+  const handleDeleteObstacle = async (id: string, title: string) => {
+    try {
+      await StorageService.deleteObstacle(id);
+      await loadObstacles();
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de supprimer l\'obstacle');
+    }
+  };
+
+  const renderObstacle = ({ item }: { item: Obstacle }) => (
+    <ObstacleCard
+      obstacle={item}
+      onDelete={handleDeleteObstacle}
+    />
+  );
+
+  const hasGpsObstacles = obstacles.some(obstacle => obstacle.latitude && obstacle.longitude);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <View style={styles.titleContainer}>
+          <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
+            Obstacles du Parcours
+          </ThemedText>
+          <ThemedText style={[styles.subtitle, { color: colors.textSecondary }]}>
+            {obstacles.length} obstacle{obstacles.length !== 1 ? 's' : ''} enregistré{obstacles.length !== 1 ? 's' : ''}
+          </ThemedText>
+        </View>
+      </View>
+
+      <StatusBar
+        obstaclesCount={obstacles.length}
+        hasGpsObstacles={hasGpsObstacles}
+      />
+
+      {obstacles.length === 0 ? (
+        <ThemedView style={styles.emptyState}>
+          <IconSymbol name="exclamationmark.triangle" size={64} color={colors.textTertiary} />
+          <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
+            Aucun obstacle, tout roule !
+          </ThemedText>
+          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+            C'est parfait ! Votre parcours est libre.
+            {'\n'}Appuyez sur "Ajouter" pour signaler un obstacle si besoin.
+          </ThemedText>
+        </ThemedView>
+      ) : (
+        <FlatList
+          data={obstacles}
+          renderItem={renderObstacle}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      )}
+
+      <AdaptiveFloatingButton
+        onPress={() => router.push('/add-obstacle')}
+        icon="plus.circle.fill"
+        label="Ajouter"
+        color="#D2691E"
+      />
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    paddingTop: 60,
+  },
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 28, // Plus d'espace
+    paddingBottom: 28, // Plus d'espace
+    backgroundColor: 'transparent',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  titleContainer: {
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  title: {
+    marginBottom: 6, // Espacement moins uniforme
+    letterSpacing: -0.3, // Serrage naturel des titres
+  },
+  subtitle: {
+    fontSize: 17, // Légèrement plus grand
+    letterSpacing: 0.2, // Espacement des lettres
+    lineHeight: 22, // Ligne plus espacée
+  },
+  list: {
+    paddingHorizontal: 28, // Plus d'espace
+    paddingBottom: 150, // Plus d'espace pour le bouton flottant
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 48, // Plus d'espace
+  },
+  emptyTitle: {
+    marginTop: 20, // Plus d'espace
+    marginBottom: 12, // Plus d'espace
+    textAlign: 'center',
+    letterSpacing: 0.1,
+  },
+  emptyDescription: {
+    textAlign: 'center',
+    lineHeight: 24, // Ligne plus espacée
+    letterSpacing: 0.2,
   },
 });
